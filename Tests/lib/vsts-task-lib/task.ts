@@ -146,7 +146,13 @@ export function setResourcePath(path: string): void {
     }
 }
 
-export function loc(key: string, ...param: any[]): string {
+export function loc(key: string): string {
+    // we can't do ...param if we target ES6 and node 5.  This is what <=ES5 compiles down to.
+    var param = [];
+    for (var _i = 1; _i < arguments.length; _i++) {
+        param[_i - 1] = arguments[_i];
+    }
+
     if (!libResourceFileLoaded) {
         // merge loc strings from vsts-task-lib.
         var libResourceFile = path.join(__dirname, 'lib.json');
@@ -585,14 +591,14 @@ export class TestPublisher {
 
     public testRunner: string;
 
-    public publish(resultFiles, mergeResults, platform, config) {
-
-        if (mergeResults == 'true') {
-            _writeLine("Merging test results from multiple files to one test run is not supported on this version of build agent for OSX/Linux, each test result file will be published as a separate test run in VSO/TFS.");
-        }
+    public publish(resultFiles, mergeResults, platform, config, runTitle, publishRunAttachments) {
 
         var properties = <{ [key: string]: string }>{};
         properties['type'] = this.testRunner;
+
+        if (mergeResults) {
+            properties['mergeResults'] = mergeResults;
+        }
 
         if (platform) {
             properties['platform'] = platform;
@@ -602,9 +608,19 @@ export class TestPublisher {
             properties['config'] = config;
         }
 
-        for (var i = 0; i < resultFiles.length; i++) {
-            command('results.publish', properties, resultFiles[i]);
+        if (runTitle) {
+            properties['runTitle'] = runTitle;
         }
+
+        if (publishRunAttachments) {
+            properties['publishRunAttachments'] = publishRunAttachments;
+        }
+
+        if (resultFiles) {
+            properties['resultFiles'] = resultFiles;
+        }
+
+        command('results.publish', properties, '');
     }
 }
 

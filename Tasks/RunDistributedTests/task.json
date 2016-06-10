@@ -13,7 +13,7 @@
     "version": {
         "Major": 1,
         "Minor": 0,
-        "Patch": 33
+        "Patch": 36
     },
     "demands": [
     ],
@@ -27,6 +27,12 @@
         {
             "name": "executionOptions",
             "displayName": "Execution Options",
+            "isExpanded": true
+        },
+        {
+            "name": "testDistribution",
+            "displayName": "Test Distribution",
+            "tags" : [ "Preview" ],
             "isExpanded": true
         },
         {
@@ -150,6 +156,15 @@
             "required": false,
             "helpMarkDown": "Whether code coverage needs to be enabled.",
             "groupName": "executionOptions"
+        },
+        {
+            "name": "customSlicingEnabled",
+            "type": "boolean",
+            "label": "Distribute tests by number of machines",
+            "defaultValue": "false",
+            "required": false,
+            "helpMarkDown": "Tests will be distributed based on the number of machines provided instead of number of test containers. Note that tests within a dll might also be distributed to multiple machines.",
+            "groupName": "testDistribution"
         },
         {
  	          "name": "testRunTitle", 

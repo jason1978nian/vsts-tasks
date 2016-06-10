@@ -34,13 +34,13 @@ var runxbuild = function (fn, clean) {
             xbuild.arg('/t:Clean');
         }
         if (platform) {
-            xbuild.arg('/p:Platform="' + platform + '"');
+            xbuild.arg('/p:Platform=' + platform);
         }
         if (configuration) {
-            xbuild.arg('/p:Configuration="' + configuration + '"');
+            xbuild.arg('/p:Configuration=' + configuration);
         }
         if (msbuildArguments) {
-            xbuild.arg(msbuildArguments);
+            xbuild.argString(msbuildArguments);
         }
 
         return xbuild.exec();
