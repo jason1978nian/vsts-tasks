@@ -1,8 +1,8 @@
 param(
     [string]$solution,
     [string]$nugetConfigPath,
-    [ValidateSet("Restore", "Install")]
-    [string]$restoreMode = "Restore",
+    [ValidateSet("restore", "install")]
+    [string]$restoreMode,
     [string]$excludeVersion, # Support for excludeVersion has been deprecated.
     [string]$noCache,
     [string]$nuGetRestoreArgs,
@@ -14,7 +14,8 @@ import-module "Microsoft.TeamFoundation.DistributedTask.Task.Common"
 
 . $PSScriptRoot\VsoNuGetHelper.ps1
 
-Write-Verbose "Entering script $MyInvocation.MyCommand.Name"
+$MyCommandName = $MyInvocation.MyCommand.Name
+Write-Verbose "Entering script $MyCommandName"
 Write-Verbose "Parameter Values"
 foreach($key in $PSBoundParameters.Keys)
 {
@@ -39,8 +40,16 @@ if ($excludeVersion -and "$excludeVersion".ToUpperInvariant() -ne 'FALSE')
 if ($solution.Contains("*") -or $solution.Contains("?"))
 {
     Write-Verbose "Pattern found in solution parameter."
-    Write-Verbose "Find-Files -SearchPattern $solution"
-    $solutionFiles = Find-Files -SearchPattern $solution
+    if ($env:SYSTEM_DEFAULTWORKINGDIRECTORY)
+    {
+        Write-Verbose "Find-Files -SearchPattern $solution -RootFolder $env:SYSTEM_DEFAULTWORKINGDIRECTORY"
+        $solutionFiles = Find-Files -SearchPattern $solution -RootFolder $env:SYSTEM_DEFAULTWORKINGDIRECTORY
+    }
+    else
+    {
+        Write-Verbose "Find-Files -SearchPattern $solution"
+        $solutionFiles = Find-Files -SearchPattern $solution
+    }
     Write-Verbose "solutionFiles = $solutionFiles"
 }
 else
@@ -60,7 +69,9 @@ if($b_noCache)
     $args = (" -NoCache " + $args);
 }
 
-if(!$nuGetPath)
+$useBuiltinNuGetExe = !$nuGetPath
+
+if($useBuiltinNuGetExe)
 {
     $nuGetPath = Get-ToolPath -Name 'NuGet.exe';
 }
@@ -80,7 +91,7 @@ if($nuGetRestoreArgs)
     $args = ($args + " " + $nuGetRestoreArgs);
 }
 
-if($nugetConfigPath -and ($nugetConfigPath -ne $env:Build_SourcesDirectory))
+if($nugetConfigPath -and ($nugetConfigPath -ne $env:System_DefaultWorkingDirectory))
 {
     $args = "$args -configfile `"$tempNuGetConfigPath`""
 
@@ -101,17 +112,35 @@ if($nugetConfigPath -and ($nugetConfigPath -ne $env:Build_SourcesDirectory))
     SetCredentialsNuGetConfigAndSaveTemp $nugetConfig $accessToken
 }
 
-if ($env:NUGET_EXTENSIONS_PATH)
+$initialNuGetExtensionsPath = $env:NUGET_EXTENSIONS_PATH
+try
 {
-    Write-Host (Get-LocalizedString -Key "Detected NuGet extensions loader path. Environment variable NUGET_EXTENSIONS_PATH is set to: {0}" -ArgumentList $env:NUGET_EXTENSIONS_PATH)
-}
-
-foreach($sf in $solutionFiles)
-{
-    if($nuGetPath)
+    if ($env:NUGET_EXTENSIONS_PATH)
     {
-        $slnFolder = $(Get-ItemProperty -Path $sf -Name 'DirectoryName').DirectoryName
-        Write-Verbose "Running nuget package restore for $slnFolder"
-        Invoke-Tool -Path $nugetPath -Arguments "restore `"$sf`" $args" -WorkingFolder $slnFolder
+        if($useBuiltinNuGetExe)
+        {
+            # NuGet.exe extensions only work with a single specific version of nuget.exe. This causes problems
+            # whenever we update nuget.exe on the agent.
+            $env:NUGET_EXTENSIONS_PATH = $null
+            Write-Warning (Get-LocalizedString -Key "The NUGET_EXTENSIONS_PATH environment variable is set, but nuget.exe extensions are not supported when using the built-in NuGet implementation.")   
+        }
+        else
+        {
+            Write-Host (Get-LocalizedString -Key "Detected NuGet extensions loader path. Environment variable NUGET_EXTENSIONS_PATH is set to: {0}" -ArgumentList $env:NUGET_EXTENSIONS_PATH)
+        }
     }
+
+    foreach($sf in $solutionFiles)
+    {
+        if($nuGetPath)
+        {
+            $slnFolder = $(Get-ItemProperty -Path $sf -Name 'DirectoryName').DirectoryName
+            Write-Verbose "Running nuget package $restoreMode for $slnFolder"
+            Invoke-Tool -Path $nugetPath -Arguments "$restoreMode `"$sf`" $args" -WorkingFolder $slnFolder
+        }
+    }
+}
+finally
+{
+    $env:NUGET_EXTENSIONS_PATH = $initialNuGetExtensionsPath
 }

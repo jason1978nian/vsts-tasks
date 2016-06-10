@@ -1,4 +1,4 @@
-﻿## Logging Commands:
+## Logging Commands:
 
 The general format for a logging command is:
     ##vso[area.action property1=value;property2=value;...]message
@@ -30,7 +30,7 @@ To invoke a logging command, simply emit the command via standard output. For ex
                     type=error or warning (Required) <br>
                     sourcepath=source file location <br>
                     linenumber=line number <br>
-                    columnumber=colum number <br>
+                    columnnumber=column number <br>
                     code=error or warning code <br>
                 </p>
             </td>
@@ -38,7 +38,7 @@ To invoke a logging command, simply emit the command via standard output. For ex
                 <p align="left">
                     Log error or warning issue to timeline record of current task.<br>
                     Example: <br>
-                    ##vso[task.logissue type=error;sourcepath=consoleapp/main.cs;linenumber=1;columnumber=1;code=100;]this is an error
+                    ##vso[task.logissue type=error;sourcepath=consoleapp/main.cs;linenumber=1;columnnumber=1;code=100;]this is an error
                 </p>
             </td>
             <td>
@@ -84,6 +84,7 @@ To invoke a logging command, simply emit the command via standard output. For ex
                 </p>
             </td>
             <td>
+            	1.95
             </td>
         </tr>
         <tr>
@@ -132,12 +133,16 @@ To invoke a logging command, simply emit the command via standard output. For ex
                 <p align="left">
                     variable=variable name (Required) <br>
                 </p>
+                 <p align="left">
+                    issecret=true (Optional) <br>
+                </p>
             </td>
             <td>
                 <p align="left">
-                    Sets a variable in the variable service of taskcontext. The first task can set a variable, and following tasks are able to use the variable. The variable is exposed to the following tasks as an environment variable.<br>
+                    Sets a variable in the variable service of taskcontext. The first task can set a variable, and following tasks are able to use the variable. The variable is exposed to the following tasks as an environment variable. When 'issecret' is set to true, the value of the variable will be saved as secret and masked out from log.<br>
                     Example: <br>
                     ##vso[task.setvariable variable=testvar;]testvalue<br> 
+                    ##vso[task.setvariable variable=testvar;issecret=true;]testvalue<br> 
                 </p>
             </td>
             <td>
@@ -160,12 +165,32 @@ To invoke a logging command, simply emit the command via standard output. For ex
                     Upload and attach attachment to current timeline record. <br>
                     Example: <br>
 					##vso[task.addattachment type=myattachmenttype;name=myattachmentname;]c:\myattachment.txt<br> 
-                    Upload and attach summary markdown to current timeline record. <br>
-                    Example: <br>
-					##vso[task.addattachment type=Distributedtask.Core.Summary;name=myattachmentname;]c:\myattachment.md<br> 
                 </p>
             </td>
             <td>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <p align="left">
+                    ##vso[task.uploadsummary]local file path
+                </p>
+            </td>
+            <td>
+                <p align="left">
+                </p>
+            </td>
+            <td>
+                <p align="left">
+                    Upload and attach summary markdown to current timeline record. <br>
+                    Example: <br>
+                    ##vso[task.uploadsummary]c:\testsummary.md <br>
+                    It is a short hand form for the command <br>
+                    ##vso[task.addattachment type=Distributedtask.Core.Summary;name=testsummaryname;]c:\testsummary.md<br> 
+                </p>
+            </td>
+            <td>
+               0.5.6
             </td>
         </tr>
     </tbody>
@@ -191,14 +216,19 @@ To invoke a logging command, simply emit the command via standard output. For ex
             </td>
             <td>
                 <p align="left">
-                    artifactname=artifact name (Required)
+                    artifactname=artifact name (Required) <br>
+                    type = artifact type (Required, supported artifact type: container, filepath, versioncontrol, gitref, tfvclabel)<br> 
                 </p>
             </td>
             <td>
                 <p align="left">
                     Create an artifact link, artifact location is required to be a file container path, VC path or UNC share path. <br>
-                    Example: <br>
-                    ##vso[artifact.associate artifactname=drop;]#/1/build <br>
+                    Examples: <br>
+                    ##vso[artifact.associate type=container;artifactname=MyServerDrop]#/1/build <br>
+                    ##vso[artifact.associate type=filepath;artifactname=MyFileShareDrop]\\MyShare\MyDropLocation <br>
+                    ##vso[artifact.associate type=versioncontrol;artifactname=MyTfvcPath]$/MyTeamProj/MyFolder <br>
+                    ##vso[artifact.associate type=gitref;artifactname=MyTag]refs/tags/MyGitTag <br>
+                    ##vso[artifact.associate type=tfvclabel;artifactname=MyTag]MyTfvcLabel <br>
                 </p>
             </td>
             <td>
@@ -263,24 +293,6 @@ To invoke a logging command, simply emit the command via standard output. For ex
         <tr>
             <td>
                 <p align="left">
-                    ##vso[build.uploadsummary]local file path
-                </p>
-            </td>
-            <td>
-                <p align="left">
-                </p>
-            </td>
-            <td>
-                <p align="left">
-                    <b>Deprecated.</b> <br>Markdown uploaded through this command won't show up in build summary view. <br>
-                    Use <i>##vso[task.addattachment type=Distributedtask.Core.Summary;name=myattachmentname;]c:\myattachment.md</i> instead. <br />
-                </p>
-            </td>
-            <td>
-            </td>
-        </tr><tr>
-            <td>
-                <p align="left">
                     ##vso[build.updatebuildnumber]build number
                 </p>
             </td>
@@ -297,6 +309,27 @@ To invoke a logging command, simply emit the command via standard output. For ex
             </td>
             <td>
                 1.88
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <p align="left">
+                    ##vso[build.addbuildtag]build tag
+                </p>
+            </td>
+            <td>
+                <p align="left">
+                </p>
+            </td>
+            <td>
+                <p align="left">
+                    Add a tag for current build.<br>
+                    Example: <br>
+                    ##vso[build.addbuildtag]Tag_UnitTestPassed
+                </p>
+            </td>
+            <td>
+                1.95
             </td>
         </tr>
     </tbody>

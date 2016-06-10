@@ -26,6 +26,10 @@ function IsVisualStudio2015Update1OrHigherInstalled {
         [string]$vsTestVersion
     )
     
+    if ([string]::IsNullOrWhiteSpace($vsTestVersion)){
+        $vsTestVersion = Locate-VSVersion
+    }
+    
     $version = [int]($vsTestVersion)
     if($version -ge 14)
     {
@@ -55,7 +59,7 @@ function SetupRunSettingsFileForParallel {
     if($runInParallelFlag -eq "True")
     {        
         $runSettingsForParallel = [xml]'<?xml version="1.0" encoding="utf-8"?>'
-        if([System.String]::IsNullOrWhiteSpace($runSettingsFilePath) -Or (-Not [io.path]::HasExtension($runSettingsFilePath)))  # no file provided so create one and use it for the run
+        if([System.String]::IsNullOrWhiteSpace($runSettingsFilePath) -Or ([string]::Compare([io.path]::GetExtension($runSettingsFilePath), ".runsettings", $True) -ne 0) -Or (Test-Path $runSettingsFilePath -pathtype container))  # no file provided so create one and use it for the run
         {
             Write-Verbose "No runsettings file provided"
             $runSettingsForParallel = [xml]'<?xml version="1.0" encoding="utf-8"?>
@@ -90,5 +94,35 @@ function SetupRunSettingsFileForParallel {
         return $tempFile
     }
     return $runSettingsFilePath
+}
+
+function Get-SubKeysInFloatFormat($keys)
+{
+	$targetKeys = @()      # New array
+	foreach ($key in $keys)
+	{
+		$targetKeys += $key -as [decimal]
+	}
+
+	return $targetKeys
+}
+
+function Locate-VSVersion()
+{
+	#Find the latest version
+	$regPath = "HKLM:\SOFTWARE\Microsoft\VisualStudio"
+	if (-not (Test-Path $regPath))
+	{
+		return $null
+	}
+	
+	$keys = Get-Item $regPath | %{$_.GetSubKeyNames()} -ErrorAction SilentlyContinue
+	$version = Get-SubKeysInFloatFormat $keys | Sort-Object -Descending | Select-Object -First 1
+
+	if ([string]::IsNullOrWhiteSpace($version))
+	{
+		return $null
+	}
+	return $version
 }
 

@@ -1,14 +1,16 @@
 [CmdletBinding(DefaultParameterSetName = 'None')]
 param(
-	[string][Parameter(Mandatory=$true)][ValidateNotNullOrEmpty()] $connectedServiceName,
+    [string][Parameter(Mandatory=$true)][ValidateNotNullOrEmpty()] $connectedServiceName,
     [string][Parameter(Mandatory=$true)][ValidateNotNullOrEmpty()] $projectKey,
     [string][Parameter(Mandatory=$true)][ValidateNotNullOrEmpty()] $projectName,
     [string][Parameter(Mandatory=$true)][ValidateNotNullOrEmpty()] $projectVersion,	
-	[string]$dbUrl,
-	[string]$dbUsername,
-	[string]$dbPassword,
+    [string]$dbUrl,
+    [string]$dbUsername,
+    [string]$dbPassword,
     [string]$cmdLineArgs,
-    [string]$configFile
+    [string]$configFile,
+    [string]$includeFullReport,
+    [string]$breakBuild
 )
 
 Write-Verbose "Starting SonarQube Pre-Build Setup Step"
@@ -19,32 +21,21 @@ Write-Verbose "projectName = $projectName"
 Write-Verbose "cmdLineArgs = $cmdLineArgs"
 Write-Verbose "configFile = $configFile"
 Write-Verbose "dbConnectionString = $dbUrl"
+Write-Verbose "breakBuild = $breakBuild"
+Write-Verbose "includeFullReport = $includeFullReport"
 
 import-module "Microsoft.TeamFoundation.DistributedTask.Task.Common"
-. ./SonarQubePreBuildImpl.ps1
+import-module "Microsoft.TeamFoundation.DistributedTask.Task.Internal"
 
+. $PSScriptRoot/Common/SonarQubeHelpers/SonarQubeHelper.ps1
 
-$serviceEndpoint = GetEndpointData $connectedServiceName
-Write-Verbose "serverUrl = $($serviceEndpoint.Url)"
+# During PR builds only an "issues mode" analysis is allowed. The resulting issues are posted as code review comments. 
+# The feature can be toggled by the user and is OFF by default.  
+ExitOnPRBuild
 
-$cmdLineArgs = UpdateArgsForPullRequestAnalysis $cmdLineArgs $serviceEndpoint
-Write-Verbose -Verbose $cmdLineArgs
+. $PSScriptRoot/SonarQubePreBuildImpl.ps1
 
-$currentDir = (Get-Item -Path ".\" -Verbose).FullName
-$bootstrapperDir = [System.IO.Path]::Combine($currentDir, "MSBuild.SonarQube.Runner-1.1") # the MSBuild.SonarQube.Runner is version specific
-$bootstrapperPath = [System.IO.Path]::Combine($bootstrapperDir, "MSBuild.SonarQube.Runner.exe")
-
-# Set the path as context variable so that the post-test task will be able to read it and not compute it again;
-# Also, if the variable is not set, the post-test task will know that the pre-build task did not execute
-SetTaskContextVariable "MsBuild.SonarQube.BootstrapperPath" $bootstrapperPath
-# Expose MsBuild.SonarQube.ProjectUri, if any of the following tasks needs it
-SetTaskContextVariable "MsBuild.SonarQube.ProjectUri" "$($serviceEndpoint.Url)/dashboard/index?id=$($projectKey)"
-
-StoreSensitiveParametersInTaskContext $serviceEndpoint.Authorization.Parameters.UserName $serviceEndpoint.Authorization.Parameters.Password $dbUsername $dbPassword
-$arguments = CreateCommandLineArgs $projectKey $projectName $projectVersion $serviceEndpoint.Url $serviceEndpoint.Authorization.Parameters.UserName $serviceEndpoint.Authorization.Parameters.Password $dbUrl $dbUsername $dbPassword $cmdLineArgs $configFile
-
-Invoke-BatchScript $bootstrapperPath –Arguments $arguments
-
+InvokePreBuildTask
 
 
 

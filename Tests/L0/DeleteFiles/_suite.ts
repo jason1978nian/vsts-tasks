@@ -21,7 +21,61 @@ describe('Delete Files Suite', function() {
 	after(function() {
 		
 	});	
-	
+
+    it('build cleanup mode does not skip if does not contain 000Admin directory', (done) => {
+        setResponseFile('buildCleanupNotSkipResponses.json');
+        var tr = new trm.TaskRunner('DeleteFiles');
+        tr.setInput('SourceFolder', '/someDir');
+        tr.setInput('Contents', '**');
+        tr.setInput('BuildCleanup', 'true');
+        tr.run()
+        .then(() => {
+            assert(tr.stdout.match(/Include matched 2 files/gi), 'task should have deleted 2 files');
+            assert(tr.stderr.length == 0, 'should not have written to stderr. error: ' + tr.stderr);
+            assert(tr.succeeded, 'task should have succeeded');
+            done();
+        })
+        .fail((err) => {
+            done(err);
+        });
+    })
+
+    it('build cleanup mode skips if contains 000Admin directory', (done) => {
+        setResponseFile('buildCleanupSkipResponses.json');
+        var tr = new trm.TaskRunner('DeleteFiles');
+        tr.setInput('SourceFolder', '/someDir');
+        tr.setInput('Contents', '**');
+        tr.setInput('BuildCleanup', 'true');
+        tr.run()
+        .then(() => {
+            assert(tr.stdout.match(/type=warning;]Skipping delete for symbol store file share/gi), 'task should have skipped symbol store share');
+            assert(tr.stderr.length == 0, 'should not have written to stderr. error: ' + tr.stderr);
+            assert(tr.succeeded, 'task should have succeeded');
+            done();
+        })
+        .fail((err) => {
+            done(err);
+        });
+    })
+
+    it('build cleanup mode skips if contains nested 000Admin directory', (done) => {
+        setResponseFile('buildCleanupSkip2Responses.json');
+        var tr = new trm.TaskRunner('DeleteFiles');
+        tr.setInput('SourceFolder', '/someDir');
+        tr.setInput('Contents', '**');
+        tr.setInput('BuildCleanup', 'true');
+        tr.run()
+        .then(() => {
+            assert(tr.stdout.match(/type=warning;]Skipping delete for symbol store file share/gi), 'task should have skipped symbol store share');
+            assert(tr.stderr.length == 0, 'should not have written to stderr. error: ' + tr.stderr);
+            assert(tr.succeeded, 'task should have succeeded');
+            done();
+        })
+        .fail((err) => {
+            done(err);
+        });
+    })
+
 	it('runs deleteFiles on single folder', (done) => {
 		setResponseFile('deleteFilesResponsesGood.json');
 		
@@ -75,7 +129,7 @@ describe('Delete Files Suite', function() {
 			done(err);
 		});
 	})
-	
+
 	it('fails if Contents not set', (done) => {
 		setResponseFile('deleteFilesResponsesGood.json');
 		
@@ -114,17 +168,15 @@ describe('Delete Files Suite', function() {
 		});
 	})
 	
-	it('fails if SourceFolder not found', (done) => {
+	it('succeeds if SourceFolder not found', (done) => {
 		setResponseFile('deleteFilesResponsesGood.json');
 		
 		var tr = new trm.TaskRunner('DeleteFiles');
 		tr.setInput('Contents', '**');
-		tr.setInput('SourceFolder', '/notExistDir');
+        tr.setInput('SourceFolder', '/notExistDir');
 		tr.run()
 		.then(() => {
-			assert(tr.failed, 'should have failed');
-            var expectedErr = 'not found SourceFolder';
-            assert(tr.stdErrContained(expectedErr), 'should have said: ' + expectedErr);
+			assert(tr.succeeded, 'should have succeeded');
             assert(tr.resultWasSet, 'task should have set a result');
             assert(tr.invokedToolCount == 0, 'should exit before running DeleteFiles');
 			done();

@@ -1,7 +1,7 @@
-/// <reference path="../../definitions/vso-task-lib.d.ts" />
+/// <reference path="../../definitions/vsts-task-lib.d.ts" />
 
 import path = require('path');
-import tl = require('vso-task-lib/vsotask');
+import tl = require('vsts-task-lib/task');
 
 tl.setResourcePath(path.join( __dirname, 'task.json'));
 
@@ -26,20 +26,27 @@ if(!tl.exist(gulp)) {
 		tl.setResult(tl.TaskResult.Failed, tl.loc('GulpNotInstalled', gulpjs));
 	}
 
-	gt.arg(gulpjs);
+	gt.pathArg(gulpjs);
 }
 else {
 	var gt = tl.createToolRunner(gulp);
+	gt.arg('--no-color');
 }
 
 // optional - no tasks will concat nothing
-gt.arg(tl.getInput('targets', false));
+tl.getDelimitedInput('targets', ' ', false)
+	.forEach(x => {
+		// omit empty values
+		if (x) {
+			gt.arg(x);
+		}
+	});
 
 gt.arg('--gulpfile');
 
-gt.arg(gulpFile);
+gt.pathArg(gulpFile);
 
-gt.arg(tl.getInput('arguments', false));
+gt.argString(tl.getInput('arguments', false));
 
 gt.exec()
 .then(function(code) {

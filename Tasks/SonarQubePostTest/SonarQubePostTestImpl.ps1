@@ -1,14 +1,14 @@
-function InvokeMsBuildRunnerPostTest
+function InvokeMSBuildRunnerPostTest
 {
 	$bootstrapperPath = GetBootsrapperPath
-	$arguments = GetMsBuildRunnerPostTestArgs
+	$arguments = GetMSBuildRunnerPostTestArgs
 
 	Invoke-BatchScript $bootstrapperPath -Arguments $arguments
 }
 
 function GetBootsrapperPath
 {
-	$bootstrapperPath = GetTaskContextVariable "MsBuild.SonarQube.BootstrapperPath" 
+	$bootstrapperPath = GetTaskContextVariable "MSBuild.SonarQube.Internal.BootstrapperPath" 
 
 	if (!$bootstrapperPath -or ![System.IO.File]::Exists($bootstrapperPath))
 	{
@@ -23,12 +23,12 @@ function GetBootsrapperPath
 # Remarks: Normally all the settings are stored in a file on the build agent, but some well-known sensitive settings need to 
 # be passed again as they cannot be stored in non-encrypted files
 #
-function GetMsBuildRunnerPostTestArgs()
+function GetMSBuildRunnerPostTestArgs()
 {
-	  $serverUsername = GetTaskContextVariable "MsBuild.SonarQube.ServerUsername" 
-	  $serverPassword = GetTaskContextVariable "MsBuild.SonarQube.ServerPassword" 
-	  $dbUsername = GetTaskContextVariable "MsBuild.SonarQube.DbUsername" 
-	  $dbPassword = GetTaskContextVariable "MsBuild.SonarQube.DbPassword" 
+	  $serverUsername = GetTaskContextVariable "MSBuild.SonarQube.ServerUsername" 
+	  $serverPassword = GetTaskContextVariable "MSBuild.SonarQube.ServerPassword" 
+	  $dbUsername = GetTaskContextVariable "MSBuild.SonarQube.DbUsername" 
+	  $dbPassword = GetTaskContextVariable "MSBuild.SonarQube.DbPassword" 
 
 	  $sb = New-Object -TypeName "System.Text.StringBuilder"; 
       [void]$sb.Append("end");
@@ -57,62 +57,3 @@ function GetMsBuildRunnerPostTestArgs()
 	return $sb.ToString();
 }
 
-function UploadSummaryMdReport
-{
-	$agentBuildDirectory = GetTaskContextVariable "Agent.BuildDirectory" 
-	if (!$agentBuildDirectory)
-	{
-		throw "Could not retrieve the Agent.BuildDirectory variable";
-	}
-
-	# Upload the summary markdown file
-	$summaryMdPath = [System.IO.Path]::Combine($agentBuildDirectory, ".sonarqube", "out", "summary.md")
-	Write-Verbose "summaryMdPath = $summaryMdPath"
-
-	if ([System.IO.File]::Exists($summaryMdPath))
-	{
-		Write-Verbose "Uploading the summary.md file"
-		Write-Host "##vso[build.uploadsummary]$summaryMdPath"
-	}
-	else
-	{
-		 Write-Warning "Could not find the summary report file $summaryMdPath"
-	}
-}
-
-function HandleCodeAnalysisReporting
-{
-	$agentBuildDirectory = GetTaskContextVariable "Agent.BuildDirectory" 
-	if (!$agentBuildDirectory)
-	{
-		throw "Could not retrieve the Agent.BuildDirectory variable.";
-	}
-
-	$sonarQubeAnalysisModeIsIncremental = GetTaskContextVariable "MsBuild.SonarQube.AnalysisModeIsIncremental"
-	if ($sonarQubeAnalysisModeIsIncremental -ieq "true")
-	{
-		GenerateCodeAnalysisReport $agentBuildDirectory
-	}
-}
-
-
-################# Helpers ######################
-
-
-function GetTaskContextVariable()
-{
-	param([string][ValidateNotNullOrEmpty()]$varName)
-	return Get-TaskVariable -Context $distributedTaskContext -Name $varName -Global $FALSE
-}
-
-# When passing arguments to a process, the quotes need to be doubled and   
-# the entire string needs to be placed inside quotes to avoid issues with spaces  
-function EscapeArg  
-{  
-    param([string]$argVal)  
-  
-    $argVal = $argVal.Replace('"', '""');  
-    $argVal = '"' + $argVal + '"';  
-  
-    return $argVal;  
-}

@@ -1,6 +1,3 @@
-// *******************************************************
-// GENERATED FILE - DO NOT EDIT DIRECTLY
-// *******************************************************
 {
   "id": "AC4EE482-65DA-4485-A532-7B085873E532",
   "name": "Maven",
@@ -19,7 +16,7 @@
   "version": {
     "Major": 1,
     "Minor": 0,
-    "Patch": 27
+    "Patch": 46
   },
   "minimumAgentVersion": "1.89.0",
   "instanceNameFormat": "ms-resource:loc.instanceNameFormat",
@@ -50,7 +47,7 @@
       "name": "mavenPOMFile",
       "type": "filePath",
       "label": "ms-resource:loc.input.label.mavenPOMFile",
-      "defaultValue": "",
+      "defaultValue": "pom.xml",
       "required": true,
       "helpMarkDown": "ms-resource:loc.input.help.mavenPOMFile"
     },
@@ -107,8 +104,8 @@
       "helpMarkDown": "ms-resource:loc.input.help.codeCoverageTool",
       "options": {
         "None": "None",
-        "JaCoCo": "JaCoCo",
-        "Cobertura": "Cobertura"
+        "Cobertura": "Cobertura",
+        "JaCoCo": "JaCoCo"
       }
     },
     {
@@ -283,7 +280,7 @@
   ],
   "execution": {
     "Node": {
-      "target": "maven2.js",
+      "target": "maventask.js",
       "argumentFormat": ""
     },
     "PowerShell": {

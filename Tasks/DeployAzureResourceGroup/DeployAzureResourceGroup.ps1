@@ -1,7 +1,11 @@
 param(
-    [string][Parameter(Mandatory=$true)]$ConnectedServiceName,
-    [string][Parameter(Mandatory=$true)]$action,
-    [string][Parameter(Mandatory=$true)]$resourceGroupName,
+    [string][Parameter(Mandatory=$true)]$connectedServiceNameSelector,
+    [string]$connectedServiceName,
+    [string]$connectedServiceNameClassic,
+    [string]$action,
+    [string]$actionClassic,
+    [string]$resourceGroupName,
+    [string]$cloudService,
     [string]$location,
     [string]$csmFile,
     [string]$csmParametersFile,
@@ -15,16 +19,31 @@ param(
     [string]$vmUserName,
     [string]$vmPassword,
     [string]$skipCACheck,
-    [string]$outputVariable
+    [string]$outputVariable,
+    [string]$enableDeploymentPrerequisitesForCreate,
+    [string]$enableDeploymentPrerequisitesForSelect
 )
 
-Write-Verbose -Verbose "Starting Azure Resource Group Deployment Task"
-Write-Verbose -Verbose "ConnectedServiceName = $ConnectedServiceName"
-Write-Verbose -Verbose "Action = $action"
-Write-Verbose -Verbose "ResourceGroupName = $resourceGroupName"
-Write-Verbose -Verbose "Location = $location"
-Write-Verbose -Verbose "OverrideParameters = $overrideParameters"
-Write-Verbose -Verbose "OutputVariable = $outputVariable"
+Write-Verbose "Starting Azure Resource Group Deployment Task"
+Write-Verbose "ConnectedServiceNameSelector = $connectedServiceNameSelector"
+Write-Verbose "ConnectedServiceName = $ConnectedServiceName"
+Write-Verbose "ConnectedServiceNameClassic = $connectedServiceNameClassic"
+Write-Verbose "Action = $action"
+Write-Verbose "ActionClassic = $actionClassic"
+Write-Verbose "ResourceGroupName = $resourceGroupName"
+Write-Verbose "CloudService = $cloudService"
+Write-Verbose "Location = $location"
+Write-Verbose "OverrideParameters = $overrideParameters"
+Write-Verbose "OutputVariable = $outputVariable"
+Write-Verbose "enableDeploymentPrerequisitesForCreate = $enableDeploymentPrerequisitesForCreate"
+Write-Verbose "enableDeploymentPrerequisitesForSelect = $enableDeploymentPrerequisitesForSelect"
+
+if($connectedServiceNameSelector -eq "ConnectedServiceNameClassic")
+{
+    $connectedServiceName = $connectedServiceNameClassic
+    $action = $actionClassic
+    $resourceGroupName = $cloudService
+}
 
 $resourceGroupName = $resourceGroupName.Trim()
 $location = $location.Trim()
@@ -51,7 +70,7 @@ function Handle-SelectResourceGroupAction
         throw (Get-LocalizedString -Key "Please provide the output variable name since you have specified the 'Select Resource Group' option.")
     }
 
-    Instantiate-Environment -resourceGroupName $resourceGroupName -outputVariable $outputVariable
+    Instantiate-Environment -resourceGroupName $resourceGroupName -outputVariable $outputVariable -enableDeploymentPrerequisites $enableDeploymentPrerequisitesForSelect
 }
 
 function Handle-ResourceGroupLifeCycleOperations
@@ -66,9 +85,14 @@ function Handle-ResourceGroupLifeCycleOperations
     if( $action -eq "Create Or Update Resource Group" )
     {
         $azureResourceGroupDeployment = Create-AzureResourceGroup -csmFile $csmFile -csmParametersFile $csmParametersFile -resourceGroupName $resourceGroupName -location $location -overrideParameters $overrideParameters
+
         if(-not [string]::IsNullOrEmpty($outputVariable))
         {
-            Instantiate-Environment -resourceGroupName $resourceGroupName -outputVariable $outputVariable
+            Instantiate-Environment -resourceGroupName $resourceGroupName -outputVariable $outputVariable -enableDeploymentPrerequisites $enableDeploymentPrerequisitesForCreate
+        }
+        elseif($enableDeploymentPrerequisitesForCreate -eq "true")
+        {
+            Enable-WinRMHttpsListener -ResourceGroupName $resourceGroupName
         }
     }
     else
@@ -82,7 +106,7 @@ try
     Validate-AzurePowerShellVersion
 
     $azureUtility = Get-AzureUtility
-    Write-Verbose -Verbose "Loading $azureUtility"
+    Write-Verbose "Loading $azureUtility"
     Import-Module ./$azureUtility -Force
 
     switch ($action)
@@ -98,7 +122,7 @@ try
         }
     }
 	
-	Write-Verbose -Verbose "Completing Azure Resource Group Deployment Task"
+	Write-Verbose "Completing Azure Resource Group Deployment Task" -Verbose
 }
 catch
 {

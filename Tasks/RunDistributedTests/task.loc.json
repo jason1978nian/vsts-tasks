@@ -1,6 +1,3 @@
-// *******************************************************
-// GENERATED FILE - DO NOT EDIT DIRECTLY
-// *******************************************************
 {
   "id": "D353D6A2-E361-4A8F-8D8C-123BEBB71028",
   "name": "RunVisualStudioTestsusingTestAgent",
@@ -16,10 +13,10 @@
   "version": {
     "Major": 1,
     "Minor": 0,
-    "Patch": 14
+    "Patch": 36
   },
   "demands": [],
-  "minimumAgentVersion": "1.88.0",
+  "minimumAgentVersion": "1.95.0",
   "groups": [
     {
       "name": "setupOptions",
@@ -32,6 +29,14 @@
       "isExpanded": true
     },
     {
+      "name": "testDistribution",
+      "displayName": "ms-resource:loc.group.displayName.testDistribution",
+      "tags": [
+        "Preview"
+      ],
+      "isExpanded": true
+    },
+    {
       "name": "reportingOptions",
       "displayName": "ms-resource:loc.group.displayName.reportingOptions",
       "isExpanded": false
@@ -40,7 +45,7 @@
   "inputs": [
     {
       "name": "testMachineGroup",
-      "type": "pickList",
+      "type": "multiLine",
       "label": "ms-resource:loc.input.label.testMachineGroup",
       "defaultValue": "",
       "required": true,
@@ -74,7 +79,10 @@
       "type": "pickList",
       "label": "ms-resource:loc.input.label.testPlan",
       "defaultValue": "",
-      "required": true,
+      "required": false,
+      "properties": {
+        "DisableManageLink": "True"
+      },
       "helpMarkDown": "ms-resource:loc.input.help.testPlan",
       "visibleRule": "testSelection = testPlan",
       "groupName": "executionOptions"
@@ -84,9 +92,10 @@
       "type": "pickList",
       "label": "ms-resource:loc.input.label.testSuite",
       "defaultValue": "",
-      "required": true,
+      "required": false,
       "properties": {
-        "MultiSelect": "True"
+        "MultiSelect": "True",
+        "DisableManageLink": "True"
       },
       "helpMarkDown": "ms-resource:loc.input.help.testSuite",
       "visibleRule": "testSelection = testPlan",
@@ -97,7 +106,10 @@
       "type": "pickList",
       "label": "ms-resource:loc.input.label.testConfiguration",
       "defaultValue": "",
-      "required": true,
+      "required": false,
+      "properties": {
+        "DisableManageLink": "True"
+      },
       "helpMarkDown": "ms-resource:loc.input.help.testConfiguration",
       "visibleRule": "testSelection = testPlan",
       "groupName": "executionOptions"
@@ -150,6 +162,15 @@
       "groupName": "executionOptions"
     },
     {
+      "name": "customSlicingEnabled",
+      "type": "boolean",
+      "label": "ms-resource:loc.input.label.customSlicingEnabled",
+      "defaultValue": "false",
+      "required": false,
+      "helpMarkDown": "ms-resource:loc.input.help.customSlicingEnabled",
+      "groupName": "testDistribution"
+    },
+    {
       "name": "testRunTitle",
       "type": "string",
       "label": "ms-resource:loc.input.label.testRunTitle",
@@ -187,7 +208,7 @@
     },
     {
       "name": "autMachineGroup",
-      "type": "pickList",
+      "type": "multiLine",
       "label": "ms-resource:loc.input.label.autMachineGroup",
       "defaultValue": "",
       "required": false,
@@ -197,37 +218,24 @@
   ],
   "sourceDefinitions": [
     {
-      "target": "testMachineGroup",
-      "endpoint": "/$(system.teamProject)/_apis/vslabs/environments",
-      "selector": "jsonpath:$.value[*].name",
-      "authKey": "tfs:DevTestLabs"
-    },
-    {
-      "target": "autMachineGroup",
-      "endpoint": "/$(system.teamProject)/_apis/vslabs/environments",
-      "selector": "jsonpath:$.value[*].name",
-      "authKey": "tfs:DevTestLabs"
-    },
-    {
       "target": "testPlan",
       "endpoint": "/$(system.teamProject)/_apis/test/plans",
       "selector": "jsonpath:$.value[*].name",
       "keySelector": "jsonpath:$.value[*].id",
-      "authKey": "tfs:DevTestLabs"
+      "authKey": "tfs:teamfoundation"
     },
     {
       "target": "testConfiguration",
       "endpoint": "/$(system.teamProject)/_apis/test/configurations",
       "selector": "jsonpath:$.value[*].name",
       "keySelector": "jsonpath:$.value[*].id",
-      "authKey": "tfs:DevTestLabs"
+      "authKey": "tfs:teamfoundation"
     },
     {
       "target": "testSuite",
-      "endpoint": "/$(system.teamProject)/_apis/test/plans/$(testPlan)/suites",
-      "selector": "jsonpath:$.value[*].name",
-      "keySelector": "jsonpath:$.value[*].id",
-      "authKey": "tfs:DevTestLabs"
+      "endpoint": "/$(system.teamProject)/_apis/test/plans/$(testPlan)/suites?$asTreeView=true",
+      "selector": "jsonpath:$.value[*]",
+      "authKey": "tfs:teamfoundation"
     }
   ],
   "instanceNameFormat": "ms-resource:loc.instanceNameFormat",

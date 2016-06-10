@@ -1,6 +1,3 @@
-// *******************************************************
-// GENERATED FILE - DO NOT EDIT DIRECTLY
-// *******************************************************
 {
   "id": "2CA8FE15-42EA-4B26-80F1-E0738EC17E89",
   "name": "AzureCloudPowerShellDeployment",
@@ -16,7 +13,7 @@
   "version": {
     "Major": 1,
     "Minor": 0,
-    "Patch": 18
+    "Patch": 23
   },
   "demands": [
     "azureps"
@@ -44,6 +41,9 @@
       "label": "ms-resource:loc.input.label.StorageAccount",
       "defaultValue": "",
       "required": true,
+      "properties": {
+        "EditableOptions": "True"
+      },
       "helpMarkDown": "ms-resource:loc.input.help.StorageAccount"
     },
     {
@@ -51,7 +51,10 @@
       "type": "pickList",
       "label": "ms-resource:loc.input.label.ServiceName",
       "defaultValue": "",
-      "required": true
+      "required": true,
+      "properties": {
+        "EditableOptions": "True"
+      }
     },
     {
       "name": "ServiceLocation",
@@ -133,14 +136,6 @@
       }
     }
   ],
-  "sourceDefinitions": [
-    {
-      "target": "StorageAccount",
-      "endpoint": "https://management.core.windows.net/$(authKey.SubscriptionId)/services/storageservices",
-      "selector": "xpath://ServiceName",
-      "authKey": "$(ConnectedServiceName)"
-    }
-  ],
   "dataSourceBindings": [
     {
       "target": "ServiceName",
@@ -156,6 +151,11 @@
       "target": "NewServiceAffinityGroup",
       "endpointId": "$(ConnectedServiceName)",
       "dataSourceName": "AzureAffinityGroups"
+    },
+    {
+      "target": "StorageAccount",
+      "endpointId": "$(ConnectedServiceName)",
+      "dataSourceName": "AzureStorageServiceNames"
     }
   ],
   "instanceNameFormat": "ms-resource:loc.instanceNameFormat",

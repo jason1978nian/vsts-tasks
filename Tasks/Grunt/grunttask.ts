@@ -1,7 +1,7 @@
-/// <reference path="../../definitions/vso-task-lib.d.ts" />
+/// <reference path="../../definitions/vsts-task-lib.d.ts" />
 
 import path = require('path');
-import tl = require('vso-task-lib/vsotask');
+import tl = require('vsts-task-lib/task');
 
 tl.setResourcePath(path.join( __dirname, 'task.json'));
 
@@ -26,20 +26,26 @@ if(!tl.exist(grunt)) {
 		tl.setResult(tl.TaskResult.Failed, tl.loc('GruntCliNotInstalled', gtcli));
 	}
 	
-	gt.arg(gtcli);
+	gt.pathArg(gtcli);
 }
 else {
 	var gt = tl.createToolRunner(grunt);
 }
 
 // optional - no tasks will concat nothing
-gt.arg(tl.getInput('targets', false));
+tl.getDelimitedInput('targets', ' ', false)
+	.forEach(x => {
+		// omit empty values
+		if (x) {
+			gt.arg(x);
+		}
+	});
 
 gt.arg('--gruntfile');
 
-gt.arg(gruntFile);
+gt.pathArg(gruntFile);
 
-gt.arg(tl.getInput('arguments', false));
+gt.argString(tl.getInput('arguments', false));
 
 gt.exec()
 .then(function(code) {

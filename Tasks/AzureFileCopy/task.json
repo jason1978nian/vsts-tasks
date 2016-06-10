@@ -13,12 +13,19 @@
   "version": {
     "Major": 1,
     "Minor": 0,
-    "Patch": 25
+    "Patch": 53
   },
   "demands": [
     "azureps"
   ],
-  "minimumAgentVersion": "1.92.0",
+    "minimumAgentVersion": "1.98.0",
+    "groups": [
+         {
+             "name": "output",
+             "displayName": "Output",
+             "isExpanded": true
+         }
+     ],
   "inputs": [
     {
       "name": "SourcePath",
@@ -29,12 +36,34 @@
       "helpMarkDown": "Absolute path of the source folder, or file on the local machine, or a UNC share. Expression should return a single folder or a file."
     },
     {
+      "name": "ConnectedServiceNameSelector",
+      "type": "pickList",
+      "label": "Azure Connection Type",
+      "required": false,
+      "helpMarkDown": "",
+      "defaultValue": "ConnectedServiceName",
+      "options": {
+        "ConnectedServiceName": "Azure Classic",
+        "ConnectedServiceNameARM": "Azure Resource Manager"
+      }
+    },
+    {
       "name": "ConnectedServiceName",
       "type": "connectedService:Azure",
-      "label": "Azure Subscription",
+      "label": "Azure Classic Subscription",
       "defaultValue": "",
       "required": true,
-      "helpMarkDown": "Azure subscription to target for copying the files."
+      "helpMarkDown": "Azure Classic subscription to target for copying the files.",
+      "visibleRule": "ConnectedServiceNameSelector = ConnectedServiceName"
+    },
+    {
+      "name": "ConnectedServiceNameARM",
+      "type": "connectedService:AzureRM",
+      "label": "Azure RM Subscription",
+      "defaultValue": "",
+      "required": true,
+      "helpMarkDown": "Azure Resource Manager subscription to target for copying the files.",
+      "visibleRule": "ConnectedServiceNameSelector = ConnectedServiceNameARM"
     },
     {
       "name": "Destination",
@@ -45,16 +74,32 @@
       "options": {
         "AzureBlob": "Azure Blob",
         "AzureVMs": "Azure VMs"
-       },
+      },
       "helpMarkDown": "Select the destination, either Azure Blob or Azure VMs."
     },
     {
       "name": "StorageAccount",
-      "type": "string",
-      "label": "Storage Account",
+      "type": "pickList",
+      "label": "Classic Storage Account",
       "defaultValue": "",
       "required": true,
-      "helpMarkDown": "Specify a pre-existing storage account. It is also used as an intermediary for copying files to Azure VMs"
+      "helpMarkDown": "Specify a pre-existing classic storage account. It is also used as an intermediary for copying files to Azure VMs",
+      "properties": {
+        "EditableOptions": "True"
+      },
+      "visibleRule": "ConnectedServiceNameSelector = ConnectedServiceName"
+    },
+    {
+      "name": "StorageAccountRM",
+      "type": "pickList",
+      "label": "RM Storage Account",
+      "defaultValue": "",
+      "required": true,
+      "helpMarkDown": "Specify a pre-existing ARM storage account. It is also used as an intermediary for copying files to Azure VMs",
+      "properties": {
+        "EditableOptions": "True"
+      },
+      "visibleRule": "ConnectedServiceNameSelector = ConnectedServiceNameARM"
     },
     {
       "name": "ContainerName",
@@ -76,12 +121,27 @@
     },
     {
       "name": "EnvironmentName",
-      "type": "string",
+      "type": "pickList",
+      "label": "Cloud Service",
+      "defaultValue": "",
+      "required": true,
+      "helpMarkDown": "Name of the target Cloud Service for copying files to.",
+      "properties": {
+        "EditableOptions": "True"
+      },
+      "visibleRule": "ConnectedServiceNameSelector = ConnectedServiceName && Destination = AzureVMs"
+    },
+    {
+      "name": "EnvironmentNameRM",
+      "type": "pickList",
       "label": "Resource Group",
       "defaultValue": "",
       "required": true,
       "helpMarkDown": "Name of the target Resource Group for copying files to.",
-      "visibleRule": "Destination = AzureVMs"
+      "properties": {
+        "EditableOptions": "True"
+      },
+      "visibleRule": "ConnectedServiceNameSelector = ConnectedServiceNameARM && Destination = AzureVMs"
     },
     {
       "name": "ResourceFilteringMethod",
@@ -141,6 +201,15 @@
       "helpMarkDown": "Additional AzCopy.exe arguments that will be applied when uploading to blob or uploading to VM like, /NC:10."
     },
     {
+      "name": "enableCopyPrerequisites",
+      "type": "boolean",
+      "label": "Enable Copy Prerequisites",
+      "defaultValue": "false",
+      "visibleRule": "ConnectedServiceNameSelector = ConnectedServiceNameARM && Destination = AzureVMs",
+      "required": false,
+      "helpMarkDown": "Enabling this option configures Windows Remote Management (WinRM) listener over HTTPS protocol on port 5986, using a self-signed certificate. This configuration is required for performing copy operation on Azure machines. If the target Virtual Machines are backed by a Load balancer, ensure Inbound NAT rules are configured for target port (5986). Applicable only for ARM VMs."
+    },
+    {
       "name": "CopyFilesInParallel",
       "type": "boolean",
       "label": "Copy in Parallel",
@@ -159,13 +228,54 @@
       "visibleRule": "Destination = AzureVMs"
     },
     {
-      "name": "skipCACheck",
-      "type": "boolean",
-      "label": "Test Certificate",
-      "defaultValue": "true",
-      "required": false,
-      "helpMarkDown": "If this option is selected, client skips the validation that the server certificate is signed by a trusted certificate authority (CA) when connecting over Hypertext Transfer Protocol over Secure Socket Layer (HTTPS).",
-      "visibleRule": "Destination = AzureVMs"
+        "name": "skipCACheck",
+        "type": "boolean",
+        "label": "Test Certificate",
+        "defaultValue": "true",
+        "required": false,
+        "helpMarkDown": "If this option is selected, client skips the validation that the server certificate is signed by a trusted certificate authority (CA) when connecting over Hypertext Transfer Protocol over Secure Socket Layer (HTTPS).",
+        "visibleRule": "Destination = AzureVMs"
+    },
+    {
+        "name": "outputStorageUri",
+        "type": "string",
+        "label": "Storage Container URI",
+        "required": false,
+        "defaultValue": "",
+        "groupName": "output",
+        "helpMarkDown": "Provide a name for the variable for the storage container URI that the files were copied to with this task.  Valid only when the selected destination is Azure Blob."
+    },
+    {
+        "name": "outputStorageContainerSasToken",
+        "type": "string",
+        "label": "Storage Container SAS Token",
+        "required": false,
+        "defaultValue": "",
+        "groupName": "output",
+        "helpMarkDown": "Provide a name for the variable for the storage container SAS Token used to access the files copied to with this task.  Valid only when the selected destination is Azure Blob."
+    }
+  ],
+  "dataSourceBindings": [
+    {
+      "target": "StorageAccount",
+      "endpointId": "$(ConnectedServiceName)",
+      "dataSourceName": "AzureStorageServiceNames"
+    },
+    {
+      "target": "EnvironmentName",
+      "endpointId": "$(ConnectedServiceName)",
+      "dataSourceName": "AzureHostedServiceNames"
+    },
+    {
+      "target": "StorageAccountRM",
+      "endpointId": "$(ConnectedServiceNameARM)",
+      "dataSourceName": "AzureStorageAccountRM"
+    },
+    {
+      "target": "EnvironmentNameRM",
+      "endpointId": "$(ConnectedServiceNameARM)",
+      "dataSourceName": "AzureVirtualMachinesV2Id",
+      "resultTemplate": "{{#extractResource resourceGroups}}"
     }
   ],
   "instanceNameFormat": "$(Destination) File Copy",

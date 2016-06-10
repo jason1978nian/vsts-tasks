@@ -1,7 +1,7 @@
-/// <reference path="../../definitions/vso-task-lib.d.ts" />
+/// <reference path="../../definitions/vsts-task-lib.d.ts" />
 
 import path = require('path');
-import tl = require('vso-task-lib/vsotask');
+import tl = require('vsts-task-lib/task');
 
 tl.setResourcePath(path.join( __dirname, 'task.json'));
 
@@ -13,7 +13,7 @@ var cwd = tl.getPathInput('workingFolder', true, false);
 tl.mkdirP(cwd);
 tl.cd(cwd);
 
-tr.arg(tl.getInput('arguments', false));
+tr.argString(tl.getInput('arguments', false));
 
 var failOnStdErr = tl.getBoolInput('failOnStandardError', false);
 

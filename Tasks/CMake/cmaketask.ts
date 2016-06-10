@@ -1,7 +1,7 @@
-/// <reference path="../../definitions/vso-task-lib.d.ts" />
+/// <reference path="../../definitions/vsts-task-lib.d.ts" />
 
 import path = require('path');
-import tl = require('vso-task-lib/vsotask');
+import tl = require('vsts-task-lib/task');
 
 tl.setResourcePath(path.join( __dirname, 'task.json'));
 
@@ -11,7 +11,7 @@ var cwd = tl.getPathInput('cwd', true, false);
 tl.mkdirP(cwd);
 tl.cd(cwd);
 
-cmake.arg(tl.getInput('cmakeArgs', false));
+cmake.argString(tl.getInput('cmakeArgs', false));
 
 cmake.exec()
 .then(function(code) {

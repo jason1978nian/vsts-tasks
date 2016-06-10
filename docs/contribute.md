@@ -38,6 +38,22 @@ From the root of the repo, install the dependencies to build:
 npm install
 ```
 
+## TypeScript
+
+Install TypeScript
+```bash
+npm install typescript -g
+```
+
+You'll need at least TypeScript 1.6 but would recommend latest at time of writing this which is 1.8.7
+
+Validate it's resolving from your terminal after installing:
+
+```bash
+$ tsc --version
+Version 1.8.7
+```
+
 ## Build
 Tasks are built using gulp.  
 
